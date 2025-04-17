@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"os/exec"
 	"strconv"
 
 	"github.com/Lazy-Parser/Analyzer/internal/dispatcher"
@@ -24,7 +23,8 @@ import (
 var (
 	counter        = 1
 	conn           *nats.Conn
-	minPercentDiff = flag.Float64("minPercentDiff", 3, "Minimum percent spread for spot / futures")
+	minPercentDiff = flag.Float64("minPercentDiff", 1, "Minimum percent spread for spot / futures")
+	minVolume      = flag.Float64("minVolume", 1000000, "Minimum volume for pair") // 2.5M
 )
 
 func New(c *nats.Conn) *MexcModule {
@@ -43,24 +43,47 @@ func (m *MexcModule) handleSpread(ctx context.Context, data json.RawMessage) err
 		return fmt.Errorf("parse data from mexc.spread failed: %w", err)
 	}
 
-	if evt.Amount24 < 1000000 {
-		// fmt.Printf("Too litle: %f \n", evt.Amount24)
+	// check data
+	spread, ok := filterAlgorithm(evt)
+	if !ok {
 		return nil
 	}
 
-	// main logic
-	f := toFloat(evt.PriceFutures)
-	s := toFloat(evt.PriceSpot)
-	percentDiff := math.Abs(((f - s) / f) * 100)
-
-	if math.Abs(percentDiff) >= *minPercentDiff {
-		log.Printf("%d) DIFF %f! %s.\n spot: %s  | futures: %s | amount24: %f \n\n", counter, percentDiff, evt.Symbol, evt.PriceSpot, evt.PriceFutures, evt.Amount24)
-		exec.Command("afplay", "/System/Library/Sounds/Pop.aiff").Run()
-		counter++
-		publish("bot.mexc.spread", evt)
-	}
+	fmt.Printf(
+		"Монета: %s | SPOT & FUTURES\n Спред: %.2f%%\n Price Spot: %.5f$\n Price Futures: %.5f$ \n\n",
+		evt.Symbol, spread, evt.Spot.Price, evt.Futures.LastPrice,
+	)
+	// exec.Command("afplay", "/System/Library/Sounds/Pop.aiff").Run()
+	counter++
+	publish("bot.mexc.spread", evt)
 
 	return nil
+}
+
+func filterAlgorithm(evt MexcSpreadEvent) (float64, bool) {
+	// check volumes
+	if evt.Spot.VolumeUSDT < *minVolume || evt.Futures.Amount24 < *minVolume {
+		return 0, false
+	}
+
+	// check spread
+	spread := findSpread(evt.Spot.Price, evt.Futures.LastPrice)
+	if spread < *minPercentDiff {
+		return 0, false
+	}
+
+	// different directions
+	// spotChange := evt.Spot.Change
+	// futuresChange := evt.Futures.RiseFallRate * 100
+	// if (spotChange > 0 && futuresChange < 0) || (spotChange < 0 && futuresChange > 0) {
+	// 	return 0, false
+	// }
+
+	return spread, true
+}
+
+func findSpread(a float64, b float64) float64 {
+	return math.Abs(((a - b) / a) * 100)
 }
 
 func toFloat(data string) float64 {
