@@ -3,31 +3,26 @@ package mexc
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"log"
 	"math"
 	"strconv"
 
 	"github.com/Lazy-Parser/Analyzer/internal/dispatcher"
+	"github.com/Lazy-Parser/Analyzer/internal/utils"
 	"github.com/nats-io/nats.go"
 )
-
-// type Message struct {
-// 	Symbol       string `json:"symbol"`
-// 	SpotPrice    string `json:"spot_price"`
-// 	FuturesPrice string `json:"futures_price"`
-// 	Timestamp    int64  `json:"timestamp"`
-// }
 
 var (
 	counter        = 1
 	conn           *nats.Conn
-	minPercentDiff = flag.Float64("minPercentDiff", 1, "Minimum percent spread for spot / futures")
-	minVolume      = flag.Float64("minVolume", 1000000, "Minimum volume for pair") // 2.5M
+	minPercentDiff = 0.0
+	minVolume      = 0.0
 )
 
 func New(c *nats.Conn) *MexcModule {
+	initVars()
+
 	conn = c
 	return &MexcModule{}
 }
@@ -37,7 +32,6 @@ func (m *MexcModule) Register(d *dispatcher.Dispatcher) {
 }
 
 func (m *MexcModule) handleSpread(ctx context.Context, data json.RawMessage) error {
-
 	var evt MexcSpreadEvent
 	if err := json.Unmarshal(data, &evt); err != nil {
 		return fmt.Errorf("parse data from mexc.spread failed: %w", err)
@@ -62,13 +56,13 @@ func (m *MexcModule) handleSpread(ctx context.Context, data json.RawMessage) err
 
 func filterAlgorithm(evt MexcSpreadEvent) (float64, bool) {
 	// check volumes
-	if evt.Spot.VolumeUSDT < *minVolume || evt.Futures.Amount24 < *minVolume {
+	if evt.Spot.VolumeUSDT < minVolume || evt.Futures.Amount24 < minVolume {
 		return 0, false
 	}
 
 	// check spread
 	spread := findSpread(evt.Spot.Price, evt.Futures.LastPrice)
-	if spread < *minPercentDiff {
+	if spread < minPercentDiff {
 		return 0, false
 	}
 
@@ -89,6 +83,17 @@ func findSpread(a float64, b float64) float64 {
 func toFloat(data string) float64 {
 	res, _ := strconv.ParseFloat(data, 64)
 	return res
+}
+
+func initVars() {
+	dotenv, err := utils.GetDotenv("MIN_SPREAD", "MIN_VOLUME");
+	if err != nil {
+		fmt.Errorf("Error while trying to get dotenv vars: ", err)
+		return
+	}
+
+	minPercentDiff = toFloat(dotenv[0])
+	minVolume = toFloat(dotenv[1])
 }
 
 func publish(subject string, data MexcSpreadEvent) {

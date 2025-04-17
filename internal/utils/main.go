@@ -1,16 +1,21 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/joho/godotenv"
 )
 
-func GetNatsUrl() (string, error) {
+func GetDotenv(names ...string) ([]string, error) {
 	if err := godotenv.Load(); err != nil {
-		return "", err
+		return []string{}, fmt.Errorf("error trying to get .env var: %w", err)
 	}
 
-	natsUrl := os.Getenv("NATS_URL")
-	return natsUrl, nil
+	var vars []string
+	for idx, name := range names {
+		vars[idx] = os.Getenv(name)
+	}
+
+	return vars, nil
 }

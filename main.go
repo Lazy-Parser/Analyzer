@@ -12,12 +12,12 @@ import (
 )
 
 func main() {
-	natsUrl, err := utils.GetNatsUrl()
+	dotenv, err := utils.GetDotenv("NATS_URL")
 	if err != nil {
 		fmt.Errorf("Get NATS URL: %w", err)
 	}
 
-	conn, err := nats.Connect(natsUrl)
+	conn, err := nats.Connect(dotenv[0])
 	if err != nil {
 		fmt.Errorf("Get NATS URL: %w", err)
 		return

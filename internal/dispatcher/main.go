@@ -3,7 +3,6 @@ package dispatcher
 import (
 	"context"
 	"fmt"
-	// "encoding/json"
 
 	"github.com/nats-io/nats.go"
 )
@@ -15,7 +14,7 @@ func New() *Dispatcher {
 }
 
 func (d *Dispatcher) Register(tp EventType, handler HandlerFunc) {
-	d.handlers[tp] = handler;
+	d.handlers[tp] = handler
 }
 
 func (d *Dispatcher) Dispatch(ctx context.Context, msg *nats.Msg) error {

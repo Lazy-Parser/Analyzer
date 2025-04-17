@@ -5,11 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"sync"
 
-	"github.com/joho/godotenv"
 	"github.com/nats-io/nats.go"
+	"github.com/Lazy-Parser/Analyzer/internal/utils"
 )
 
 type Message struct {
@@ -28,12 +27,12 @@ var (
 // Create connection to the NATS. Singleton
 func InitPublisher() {
 	once.Do(func() {
-		natsURL, err := getDotenv()
+		dotenv, err := utils.GetDotenv("NATS_URL")
 		if err != nil {
 			fmt.Errorf("load NATS URL from env: %w", err)
 		}
 
-		conn, err := nats.Connect(natsURL)
+		conn, err := nats.Connect(dotenv[0])
 		if err != nil {
 			fmt.Errorf("connect to NATS: %w", err)
 		}
@@ -65,13 +64,4 @@ func (p *Publisher) Publish(subject string, data Message) error {
 func (p *Publisher) Close() {
 	p.nc.Close()
 	log.Println("🛑 NATS connection closed")
-}
-
-func getDotenv() (string, error) {
-	if err := godotenv.Load(); err != nil {
-		return "", fmt.Errorf("error trying to get .env var: %w", err)
-	}
-
-	natsURL := os.Getenv("NATS_URL")
-	return natsURL, nil
 }
