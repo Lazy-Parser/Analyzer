@@ -8,7 +8,7 @@ import (
 )
 
 func GetDotenv(names ...string) ([]string, error) {
-	if err := godotenv.Load(); err != nil {
+	if err := godotenv.Load("../../.env"); err != nil {
 		return []string{}, fmt.Errorf("error trying to get .env var: %w", err)
 	}
 
