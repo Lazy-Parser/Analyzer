@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"sync"
 
 	"github.com/nats-io/nats.go"
-	"github.com/Lazy-Parser/Analyzer/internal/utils"
 )
 
 type Message struct {
@@ -27,12 +27,9 @@ var (
 // Create connection to the NATS. Singleton
 func InitPublisher() {
 	once.Do(func() {
-		dotenv, err := utils.GetDotenv("NATS_URL")
-		if err != nil {
-			fmt.Errorf("load NATS URL from env: %w", err)
-		}
-
-		conn, err := nats.Connect(dotenv[0])
+		natsUrl := os.Getenv("NATS_URL")
+		
+		conn, err := nats.Connect(natsUrl)
 		if err != nil {
 			fmt.Errorf("connect to NATS: %w", err)
 		}

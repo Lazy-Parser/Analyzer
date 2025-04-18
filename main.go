@@ -3,21 +3,18 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/Lazy-Parser/Analyzer/internal/dispatcher"
 	"github.com/Lazy-Parser/Analyzer/internal/modules/mexc"
 	"github.com/Lazy-Parser/Analyzer/internal/subscriber"
-	"github.com/Lazy-Parser/Analyzer/internal/utils"
 	"github.com/nats-io/nats.go"
 )
 
 func main() {
-	dotenv, err := utils.GetDotenv("NATS_URL")
-	if err != nil {
-		fmt.Errorf("Get NATS URL: %w", err)
-	}
+	natsUrl := os.Getenv("NATS_URL")
 
-	conn, err := nats.Connect(dotenv[0])
+	conn, err := nats.Connect(natsUrl)
 	if err != nil {
 		fmt.Errorf("Get NATS URL: %w", err)
 		return

@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"os"
 	"strconv"
 
 	"github.com/Lazy-Parser/Analyzer/internal/dispatcher"
-	"github.com/Lazy-Parser/Analyzer/internal/utils"
 	"github.com/nats-io/nats.go"
 )
 
@@ -86,14 +86,8 @@ func toFloat(data string) float64 {
 }
 
 func initVars() {
-	dotenv, err := utils.GetDotenv("MIN_SPREAD", "MIN_VOLUME");
-	if err != nil {
-		fmt.Errorf("Error while trying to get dotenv vars: ", err)
-		return
-	}
-
-	minPercentDiff = toFloat(dotenv[0])
-	minVolume = toFloat(dotenv[1])
+	minPercentDiff = toFloat(os.Getenv("MIN_SPREAD"))
+	minVolume = toFloat(os.Getenv("MIN_VOLUME"))
 }
 
 func publish(subject string, data MexcSpreadEvent) {
